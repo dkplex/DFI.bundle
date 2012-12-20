@@ -12,9 +12,12 @@ class DFIAgent(Agent.Movies):
     primary_provider = True
 
     def search(self, results, media, lang):
-        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % (String.Quote(media.name)))
+        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % media.name.lower().replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?') )
+        Log.Debug(media.name)
         for DFI_Results in DFI_Search:
-            results.Append(MetadataSearchResult(id = str(DFI_Results['ID']), score = 100, name = DFI_Results['Name'], lang = lang))    
+        	DFI_Details = JSON.ObjectFromURL(DFI_RESULT_URL % DFI_Results['ID'])
+        	results.Append(MetadataSearchResult(id = str(DFI_Results['ID']), score = 100 if DFI_Results['Name'] == media.name else 100-(String.LevenshteinDistance(DFI_Results['Name'], media.name)), name = DFI_Results['Name'] , lang = lang, year = int(DFI_Details.get('ReleaseYear'))))
+            
             
     def update(self, metadata, media, lang): 
        
