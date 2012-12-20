@@ -12,8 +12,7 @@ class DFIAgent(Agent.Movies):
     primary_provider = True
 
     def search(self, results, media, lang):
-        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % media.name.lower().replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?') )
-        Log.Debug(media.name)
+        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % str(media.name).replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?').replace('Æ','?').replace('Ø','?').replace('Å','?') )
         for DFI_Results in DFI_Search:
         	DFI_Details = JSON.ObjectFromURL(DFI_RESULT_URL % DFI_Results['ID'])
         	results.Append(MetadataSearchResult(id = str(DFI_Results['ID']), score = 100 if DFI_Results['Name'] == media.name else 100-(String.LevenshteinDistance(DFI_Results['Name'], media.name)), name = DFI_Results['Name'] , lang = lang, year = int(DFI_Details.get('ReleaseYear'))))
@@ -49,7 +48,6 @@ class DFIAgent(Agent.Movies):
            metadata.roles.clear()
 
            for credit in DFI_metadata['Credits']:
-               Log.Info(credit['Type'])
                if credit['Type'] == 'Direction':
                    metadata.directors.add(credit['Name'])
                if credit['Type'] == 'Screenwriter' or credit['Type'] == 'Script':
