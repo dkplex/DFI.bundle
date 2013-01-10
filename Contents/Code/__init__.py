@@ -1,6 +1,6 @@
 from datetime import date
 import re
-DFI_SEARCH_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/list?titlecontains=%s"
+DFI_SEARCH_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/list?titlestartswith=%s"
 DFI_RESULT_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/%s"
 
 def Start():
@@ -10,17 +10,29 @@ class DFIAgent(Agent.Movies):
     name = "DFI"
     languages = [Locale.Language.Danish]
     primary_provider = True
+    accept_from = "com.plexapp.agents.imdb"
 
     def search(self, results, media, lang):
-        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % str(media.name).replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?').replace('Æ','?').replace('Ø','?').replace('Å','?') )
+        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % str(media.name).lstrip('De ').replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?').replace('Æ','?').replace('Ø','?').replace('Å','?') )
         for DFI_Results in DFI_Search:
         	DFI_Details = JSON.ObjectFromURL(DFI_RESULT_URL % DFI_Results['ID'])
-        	results.Append(MetadataSearchResult(id = str(DFI_Results['ID']), score = 100 if DFI_Results['Name'] == media.name else 100-(String.LevenshteinDistance(DFI_Results['Name'], media.name)), name = DFI_Results['Name'] , lang = lang, year = int(DFI_Details.get('ReleaseYear'))))
+        	id = str(DFI_Results['ID'])
+        	if DFI_Results['Name'] == media.name:
+        		score = 100
+    		else:
+    			score = 100-(String.LevenshteinDistance(DFI_Results['Name'], media.name))
+    		if DFI_Details.get('ReleaseYear') > media.year:
+    			score = score - (DFI_Details.get('ReleaseYear')-media.year)
+			if DFI_Details.get('ReleaseYear') > media.year:
+				score = score - (media.year-DFI_Details.get('ReleaseYear'))
+        	name = DFI_Results['Name']
+        	year = int(DFI_Details.get('ReleaseYear'))
+        	results.Append(MetadataSearchResult(id = id, score = score, name = name , lang = lang, year = year))
             
             
     def update(self, metadata, media, lang): 
        
-       # Only use data from Moviepilot if the user has set the language for this section to Danish (Dansk)
+       # Only use data from DFI if the user has set the language for this section to Danish (Dansk)
        if lang == 'da':
            
            proxy = Proxy.Preview
@@ -30,9 +42,14 @@ class DFIAgent(Agent.Movies):
            if 'Description' in DFI_metadata: metadata.summary = DFI_metadata['Description']
            if 'OriginalTitle' in DFI_metadata :metadata.original_title = DFI_metadata['OriginalTitle']
 
-           if 'ProductionCountries' in DFI_metadata : 
-               for country in DFI_metadata['ProductionCountries']:
-                   metadata.countries.add(country)
+           if 'ProductionCountries' in DFI_metadata :
+           		## Get at list of all contries to translate from country code to readable text
+            	countrylist = JSON.ObjectFromURL('https://raw.github.com/umpirsky/country-list/master/country/cldr/en/country.json')
+            	## Clear the metadata, in case old language codes has been added (from pre release)
+            	metadata.countries.clear() 
+               	for country in DFI_metadata['ProductionCountries']:
+           			metadata.countries.add(countrylist[country])
+               			
                 
            if 'LengthInMin' in DFI_metadata : metadata.duration =  int(DFI_metadata['LengthInMin']) * 60000
            if 'ReleaseYear' in DFI_metadata : metadata.year = int(DFI_metadata['ReleaseYear'])
@@ -77,6 +94,7 @@ class DFIAgent(Agent.Movies):
                    if 'SrcMini' in image and image['ImageType'] == 'photo':
                        art = HTTP.Request(image['SrcMini'])
                        metadata.art[image['SrcMini']] = proxy(art, sort_order = 1)
+                       
             
             
                 
