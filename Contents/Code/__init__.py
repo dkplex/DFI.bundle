@@ -1,6 +1,6 @@
 from datetime import date
 import re
-DFI_SEARCH_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/list?titlestartswith=%s"
+DFI_SEARCH_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/list?titlecontains=%s"
 DFI_RESULT_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/%s"
 
 def Start():
@@ -13,18 +13,21 @@ class DFIAgent(Agent.Movies):
     accept_from = "com.plexapp.agents.imdb"
 
     def search(self, results, media, lang):
-        DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % str(media.name).lstrip('De ').replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?').replace('Æ','?').replace('Ø','?').replace('Å','?') )
+        #DFI_Search = JSON.ObjectFromURL(DFI_SEARCH_URL % str(media.name).lstrip('De ').replace(' ','+').replace('æ','?').replace('ø','?').replace('å','?').replace('Æ','?').replace('Ø','?').replace('Å','?') )
+        url = DFI_RESULT_URL % ('list?titlestartswith=' + re.sub(' ','+', re.sub('[æøå\-\&]','?', re.sub('^en |^et |^de.','',str(media.name).lower()))))
+        if media.year:
+        	url += '&startyear=' + str(int(media.year)-5) + '&endyear=' + str(int(media.year)+5)
+        DFI_Search = JSON.ObjectFromURL(url)
         for DFI_Results in DFI_Search:
         	DFI_Details = JSON.ObjectFromURL(DFI_RESULT_URL % DFI_Results['ID'])
         	id = str(DFI_Results['ID'])
         	if DFI_Results['Name'] == media.name:
         		score = 100
     		else:
-    			score = 100-(String.LevenshteinDistance(DFI_Results['Name'], media.name))
-    		if DFI_Details.get('ReleaseYear') > media.year:
-    			score = score - (DFI_Details.get('ReleaseYear')-media.year)
-			if DFI_Details.get('ReleaseYear') > media.year:
-				score = score - (media.year-DFI_Details.get('ReleaseYear'))
+    			score = 100 - String.LevenshteinDistance(DFI_Results['Name'], media.name)
+    			if media.year:
+    				score = abs(int(media.year)-int(DFI_Details.get('ReleaseYear',str(media.year))))
+  
         	name = DFI_Results['Name']
         	year = int(DFI_Details.get('ReleaseYear'))
         	results.Append(MetadataSearchResult(id = id, score = score, name = name , lang = lang, year = year))
@@ -85,7 +88,7 @@ class DFIAgent(Agent.Movies):
                except:
                    Log("Exception obtaining content rating from DFI.")
 
-           if 'Images' in DFI_metadata:
+           if 'Images' in DFI_metadata and DFI_metadata.get('Images') is not None:
                DFI_images = JSON.ObjectFromURL(DFI_metadata['Images'])   
                for image in DFI_images:
                    if 'SrcMini' in image and image['ImageType'] == 'poster':
