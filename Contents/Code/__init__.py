@@ -10,7 +10,7 @@ rdict = {
 }
 
 RE_REPLACE = Regex('|'.join(rdict.keys()), Regex.IGNORECASE)
-RE_AGE = Regex('(\d)+')
+RE_AGE = Regex('(\d+)')
 
 ####################################################################################################
 def Start():
@@ -109,7 +109,7 @@ class DFIAgent(Agent.Movies):
 		if 'Censorship' in DFI_Metadata:
 			try:
 				if RE_AGE.search(DFI_Metadata['Censorship']):
-					metadata.content_rating_age = RE_AGE.search(DFI_Metadata['Censorship'].group(1))
+					metadata.content_rating_age = int(RE_AGE.search(DFI_Metadata['Censorship']).group(1))
 					metadata.content_rating = DFI_Metadata['Censorship']
 			except Exception, ex:
 				Log.Debug("Exception obtaining content rating from DFI.")
@@ -122,16 +122,16 @@ class DFIAgent(Agent.Movies):
 				if image.get('Filetype').lower() in ('jpg', 'png'):
 					if 'SrcMini' in image and image['ImageType'] == 'poster':
 						try:
-							poster = HTTP.Request(image['SrcMini'], timeout=120, sleep=2.0).content
-							metadata.posters[image['SrcMini']] = Proxy.Preview(poster)
+							poster = HTTP.Request(image['SrcMini'].replace('www2.', 'www.'), timeout=120, sleep=2.0).content
+							metadata.posters[image['SrcMini'].replace('www2.', 'www.')] = Proxy.Preview(poster)
 						except Exception, ex:
 							Log.Debug('Poster problem')
 							Log.Debug(ex)
 
 					if 'SrcMini' in image and image['ImageType'] == 'photo':
 						try:
-							art = HTTP.Request(image['SrcMini'], timeout=120, sleep=2.0).content
-							metadata.art[image['SrcMini']] = Proxy.Preview(art)
+							art = HTTP.Request(image['SrcMini'].replace('www2.', 'www.'), timeout=120, sleep=2.0).content
+							metadata.art[image['SrcMini'].replace('www2.', 'www.')] = Proxy.Preview(art)
 						except Exception, ex:
 							Log.Debug('Art problem')
 							Log.Debug(ex)
