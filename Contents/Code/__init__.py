@@ -3,9 +3,9 @@ DFI_API_URL = "http://nationalfilmografien.service.dfi.dk/Movie.svc/json/%s"
 rdict = {
 	'&': '?',
 	' ': '+',
-	'æ': '%E6',
-	'ø': '%F8',
-	'å': '%E5',
+	'��': '%E6',
+	'��': '%F8',
+	'��': '%E5',
 	'(^en |^et |^de |^den |^der |^det )': ''
 }
 
@@ -36,7 +36,7 @@ class DFIAgent(Agent.Movies):
 			DFI_Details = JSON.ObjectFromURL(DFI_API_URL % DFI_Results['ID'], cacheTime=CACHE_1MONTH, sleep=2.0)
 			score = 100
 
-			score = score - abs(String.LevenshteinDistance(media.name.lower(), DFI_Results['Name'].lower()))
+			score = score - abs(String.LevenshteinDistance(str(media.name).lower(), DFI_Results['Name'].lower()))
 
 			if media.year and int(media.year) > 1900:
 				score = score - (abs(int(media.year) - int(DFI_Details.get('ReleaseYear'))) * 5)
